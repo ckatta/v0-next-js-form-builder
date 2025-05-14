@@ -5,7 +5,6 @@ import { Search, Locate } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import Script from "next/script"
 
 interface MapLocationSelectorProps {
   height?: number
@@ -28,75 +27,89 @@ export default function MapLocationSelector({
     lng: defaultLongitude,
     address: "New York, NY, USA",
   })
-  const [mapLoaded, setMapLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const leafletMapRef = useRef<any>(null)
   const markerRef = useRef<any>(null)
 
-  // Initialize map when component mounts and leaflet is loaded
+  // Initialize map when component mounts
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return
+    // Only run this on the client side
+    if (typeof window === "undefined" || !mapRef.current) return
 
-    // @ts-ignore - L comes from the Leaflet script
-    const L = window.L
+    // Load Leaflet dynamically
+    const loadLeaflet = async () => {
+      try {
+        // Add Leaflet CSS
+        const linkEl = document.createElement("link")
+        linkEl.rel = "stylesheet"
+        linkEl.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        document.head.appendChild(linkEl)
 
-    if (!L) return
+        // Wait for CSS to load
+        await new Promise((resolve) => setTimeout(resolve, 100))
 
-    // Initialize map
-    leafletMapRef.current = L.map(mapRef.current).setView([selectedLocation.lat, selectedLocation.lng], defaultZoom)
+        // Load Leaflet JS
+        const L = await import("leaflet")
 
-    // Add tile layer (OpenStreetMap)
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(leafletMapRef.current)
+        // Initialize map if it doesn't exist yet
+        if (!leafletMapRef.current) {
+          leafletMapRef.current = L.map(mapRef.current).setView(
+            [selectedLocation.lat, selectedLocation.lng],
+            defaultZoom,
+          )
 
-    // Add marker for selected location
-    markerRef.current = L.marker([selectedLocation.lat, selectedLocation.lng], {
-      draggable: true,
-    }).addTo(leafletMapRef.current)
+          // Add tile layer (OpenStreetMap)
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          }).addTo(leafletMapRef.current)
 
-    // Handle marker drag events
-    markerRef.current.on("dragend", async () => {
-      const position = markerRef.current.getLatLng()
-      const newLocation = {
-        lat: position.lat,
-        lng: position.lng,
-        address: await reverseGeocode(position.lat, position.lng),
+          // Add marker for selected location
+          markerRef.current = L.marker([selectedLocation.lat, selectedLocation.lng], {
+            draggable: true,
+          }).addTo(leafletMapRef.current)
+
+          // Handle marker drag events
+          markerRef.current.on("dragend", async () => {
+            const position = markerRef.current.getLatLng()
+            const newLocation = {
+              lat: position.lat,
+              lng: position.lng,
+              address: await reverseGeocode(position.lat, position.lng),
+            }
+            setSelectedLocation(newLocation)
+            if (onChange) onChange(newLocation)
+          })
+
+          // Handle map click events
+          leafletMapRef.current.on("click", async (e: any) => {
+            const { lat, lng } = e.latlng
+            markerRef.current.setLatLng([lat, lng])
+
+            const newLocation = {
+              lat,
+              lng,
+              address: await reverseGeocode(lat, lng),
+            }
+            setSelectedLocation(newLocation)
+            if (onChange) onChange(newLocation)
+          })
+        }
+      } catch (error) {
+        console.error("Error loading Leaflet:", error)
       }
-      setSelectedLocation(newLocation)
-      if (onChange) onChange(newLocation)
-    })
+    }
 
-    // Handle map click events
-    leafletMapRef.current.on("click", async (e: any) => {
-      const { lat, lng } = e.latlng
-      markerRef.current.setLatLng([lat, lng])
-
-      const newLocation = {
-        lat,
-        lng,
-        address: await reverseGeocode(lat, lng),
-      }
-      setSelectedLocation(newLocation)
-      if (onChange) onChange(newLocation)
-    })
+    loadLeaflet()
 
     // Cleanup on unmount
     return () => {
       if (leafletMapRef.current) {
         leafletMapRef.current.remove()
+        leafletMapRef.current = null
       }
     }
-  }, [mapLoaded, defaultZoom, onChange])
-
-  // Update marker when selectedLocation changes
-  useEffect(() => {
-    if (!mapLoaded || !leafletMapRef.current || !markerRef.current) return
-
-    markerRef.current.setLatLng([selectedLocation.lat, selectedLocation.lng])
-    leafletMapRef.current.setView([selectedLocation.lat, selectedLocation.lng], leafletMapRef.current.getZoom())
-  }, [selectedLocation, mapLoaded])
+  }, [defaultZoom, onChange, selectedLocation.lat, selectedLocation.lng])
 
   // Geocode address to coordinates
   const geocodeAddress = async (address: string) => {
@@ -142,6 +155,13 @@ export default function MapLocationSelector({
     const location = await geocodeAddress(searchQuery)
     if (location) {
       setSelectedLocation(location)
+
+      // Update map view and marker if map is initialized
+      if (leafletMapRef.current && markerRef.current) {
+        leafletMapRef.current.setView([location.lat, location.lng], leafletMapRef.current.getZoom())
+        markerRef.current.setLatLng([location.lat, location.lng])
+      }
+
       if (onChange) onChange(location)
     }
   }
@@ -160,6 +180,13 @@ export default function MapLocationSelector({
           }
 
           setSelectedLocation(newLocation)
+
+          // Update map view and marker if map is initialized
+          if (leafletMapRef.current && markerRef.current) {
+            leafletMapRef.current.setView([latitude, longitude], leafletMapRef.current.getZoom())
+            markerRef.current.setLatLng([latitude, longitude])
+          }
+
           if (onChange) onChange(newLocation)
         },
         (error) => {
@@ -174,10 +201,6 @@ export default function MapLocationSelector({
 
   return (
     <div className="space-y-2">
-      {/* Load Leaflet CSS and JS */}
-      <Script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onLoad={() => setMapLoaded(true)} />
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
@@ -200,14 +223,13 @@ export default function MapLocationSelector({
       </div>
 
       <div ref={mapRef} className="relative border rounded-md overflow-hidden" style={{ height: `${height}px` }}>
-        {!mapLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800 mx-auto"></div>
-              <p className="mt-2 text-sm text-gray-600">Loading map...</p>
-            </div>
+        {/* Loading indicator */}
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10 pointer-events-none opacity-0">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800 mx-auto"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading map...</p>
           </div>
-        )}
+        </div>
       </div>
 
       <Card className="p-3">
