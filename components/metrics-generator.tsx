@@ -17,7 +17,7 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
 
   // Calculate form complexity score (0-100)
   const calculateComplexityScore = (): number => {
-    if (!schema.fields.length) return 0
+    if (!schema.fields || !schema.fields.length) return 0
 
     // Base score based on number of fields
     let score = Math.min(schema.fields.length * 5, 40)
@@ -45,7 +45,7 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
 
   // Estimate completion time in seconds
   const estimateCompletionTime = (): number => {
-    if (!schema.fields.length) return 0
+    if (!schema.fields || !schema.fields.length) return 0
 
     let time = 0
 
@@ -102,7 +102,7 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
 
   // Predict conversion rate (0-100%)
   const predictConversionRate = (): number => {
-    if (!schema.fields.length) return 0
+    if (!schema.fields || !schema.fields.length) return 0
 
     // Base conversion rate
     let rate = 90
@@ -134,26 +134,31 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
   const generateFieldTypeDistribution = () => {
     const distribution: Record<string, number> = {}
 
-    schema.fields.forEach((field) => {
-      if (distribution[field.type]) {
-        distribution[field.type]++
-      } else {
-        distribution[field.type] = 1
-      }
-    })
+    if (schema.fields) {
+      schema.fields.forEach((field) => {
+        if (distribution[field.type]) {
+          distribution[field.type]++
+        } else {
+          distribution[field.type] = 1
+        }
+      })
+    }
 
     return distribution
   }
 
   // Generate validation analysis
   const generateValidationAnalysis = () => {
-    const totalFields = schema.fields.length
+    const totalFields = schema.fields ? schema.fields.length : 0
     if (totalFields === 0) return { requiredPercentage: 0, validatedPercentage: 0 }
 
-    const requiredFields = schema.fields.filter((field) => field.required).length
-    const validatedFields = schema.fields.filter(
-      (field) => field.pattern || field.minLength || field.maxLength || field.min || field.max || field.validateRange,
-    ).length
+    const requiredFields = schema.fields ? schema.fields.filter((field) => field.required).length : 0
+    const validatedFields = schema.fields
+      ? schema.fields.filter(
+          (field) =>
+            field.pattern || field.minLength || field.maxLength || field.min || field.max || field.validateRange,
+        ).length
+      : 0
 
     return {
       requiredPercentage: Math.round((requiredFields / totalFields) * 100),
@@ -269,13 +274,13 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Total Fields</span>
-                    <span className="font-medium">{schema.fields.length}</span>
+                    <span className="font-medium">{schema.fields ? schema.fields.length : 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Required Fields</span>
                     <span className="font-medium">
-                      {schema.fields.filter((f) => f.required).length}(
-                      {schema.fields.length
+                      {schema.fields ? schema.fields.filter((f) => f.required).length : 0}(
+                      {schema.fields && schema.fields.length
                         ? Math.round((schema.fields.filter((f) => f.required).length / schema.fields.length) * 100)
                         : 0}
                       %)
@@ -288,19 +293,19 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
                   <div className="flex justify-between">
                     <span className="text-gray-500">Advanced Fields</span>
                     <span className="font-medium">
-                      {
-                        schema.fields.filter((f) =>
-                          [
-                            "richtext",
-                            "markdown",
-                            "code",
-                            "location",
-                            "datetimerange",
-                            "signature",
-                            "address",
-                          ].includes(f.type),
-                        ).length
-                      }
+                      {schema.fields
+                        ? schema.fields.filter((f) =>
+                            [
+                              "richtext",
+                              "markdown",
+                              "code",
+                              "location",
+                              "datetimerange",
+                              "signature",
+                              "address",
+                            ].includes(f.type),
+                          ).length
+                        : 0}
                     </span>
                   </div>
                 </div>
@@ -318,13 +323,17 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
                       <div className="flex justify-between text-sm">
                         <span className="capitalize">{type}</span>
                         <span>
-                          {count} ({Math.round((count / schema.fields.length) * 100)}%)
+                          {count} (
+                          {schema.fields && schema.fields.length ? Math.round((count / schema.fields.length) * 100) : 0}
+                          %)
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${(count / schema.fields.length) * 100}%` }}
+                          style={{
+                            width: `${schema.fields && schema.fields.length ? (count / schema.fields.length) * 100 : 0}%`,
+                          }}
                         ></div>
                       </div>
                     </div>
@@ -348,7 +357,13 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
                         <div key={index} className="flex flex-col items-center">
                           <div
                             className="w-12 bg-blue-500 rounded-t-sm"
-                            style={{ height: `${(count / Math.max(...Object.values(fieldDistribution))) * 150}px` }}
+                            style={{
+                              height: `${
+                                Object.values(fieldDistribution).length > 0
+                                  ? (count / Math.max(...Object.values(fieldDistribution))) * 150
+                                  : 0
+                              }px`,
+                            }}
                           ></div>
                           <div className="text-xs mt-1 truncate w-12 text-center">{type}</div>
                         </div>
@@ -436,11 +451,20 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
                 <div className="text-sm font-medium mb-4">Validation Types</div>
                 <div className="space-y-3">
                   {[
-                    { name: "Required", count: schema.fields.filter((f) => f.required).length },
-                    { name: "Pattern/Regex", count: schema.fields.filter((f) => f.pattern).length },
-                    { name: "Min/Max Length", count: schema.fields.filter((f) => f.minLength || f.maxLength).length },
-                    { name: "Min/Max Value", count: schema.fields.filter((f) => f.min || f.max).length },
-                    { name: "Date Range", count: schema.fields.filter((f) => f.validateRange).length },
+                    { name: "Required", count: schema.fields ? schema.fields.filter((f) => f.required).length : 0 },
+                    { name: "Pattern/Regex", count: schema.fields ? schema.fields.filter((f) => f.pattern).length : 0 },
+                    {
+                      name: "Min/Max Length",
+                      count: schema.fields ? schema.fields.filter((f) => f.minLength || f.maxLength).length : 0,
+                    },
+                    {
+                      name: "Min/Max Value",
+                      count: schema.fields ? schema.fields.filter((f) => f.min || f.max).length : 0,
+                    },
+                    {
+                      name: "Date Range",
+                      count: schema.fields ? schema.fields.filter((f) => f.validateRange).length : 0,
+                    },
                   ].map((item, index) => (
                     <div key={index} className="space-y-1">
                       <div className="flex justify-between text-sm">
@@ -450,7 +474,9 @@ export default function MetricsGenerator({ schema }: MetricsGeneratorProps) {
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-green-500 h-2 rounded-full"
-                          style={{ width: `${schema.fields.length ? (item.count / schema.fields.length) * 100 : 0}%` }}
+                          style={{
+                            width: `${schema.fields && schema.fields.length ? (item.count / schema.fields.length) * 100 : 0}%`,
+                          }}
                         ></div>
                       </div>
                     </div>

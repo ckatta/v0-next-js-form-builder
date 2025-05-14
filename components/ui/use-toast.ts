@@ -1,9 +1,6 @@
-// This is a simplified version of the shadcn/ui toast hook
 "use client"
 
-import type React from "react"
-
-import { useState, createContext, useContext } from "react"
+import * as React from "react"
 
 type ToastProps = {
   id?: string
@@ -18,7 +15,7 @@ type ToasterToast = ToastProps & {
   dismiss: () => void
 }
 
-const ToastContext = createContext<{
+const ToastContext = React.createContext<{
   toasts: ToasterToast[]
   toast: (props: ToastProps) => void
   dismiss: (toastId: string) => void
@@ -29,7 +26,7 @@ const ToastContext = createContext<{
 })
 
 export const useToast = () => {
-  const context = useContext(ToastContext)
+  const context = React.useContext(ToastContext)
   if (!context) {
     throw new Error("useToast must be used within a ToastProvider")
   }
@@ -37,7 +34,7 @@ export const useToast = () => {
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = useState<ToasterToast[]>([])
+  const [toasts, setToasts] = React.useState<ToasterToast[]>([])
 
   const toast = (props: ToastProps) => {
     const id = props.id || String(Date.now())
