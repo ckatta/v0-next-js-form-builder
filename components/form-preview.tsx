@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Star, Link, Upload, Code, RefreshCw, X, EyeOff, BarChart } from "lucide-react"
+import { Star, Link, Code, RefreshCw, X, EyeOff, BarChart } from "lucide-react"
 
 import type { FormSchema } from "./form-builder"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card"
 import MapLocationSelector from "./map-location-selector"
 import MetricsGenerator from "./metrics-generator"
 import DateTimeRangePicker from "./datetime-range-picker"
+import ImageSelector from "./image-selector"
 
 interface FormPreviewProps {
   schema?: FormSchema
@@ -326,17 +327,7 @@ export default function FormPreview({ schema }: FormPreviewProps) {
             )}
 
             {field.type === "image" && (
-              <div className="space-y-2">
-                <div className="border-2 border-dashed rounded-md p-6 text-center">
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm text-gray-500">Drag and drop an image, or click to browse</p>
-                  <Input id={field.id} type="file" accept="image/*" className="hidden" required={field.required} />
-                  <Button type="button" variant="outline" size="sm" className="mt-2">
-                    Select Image
-                  </Button>
-                </div>
-                <div className="text-sm text-gray-500">Supported formats: JPG, PNG, GIF. Max size: 5MB</div>
-              </div>
+              <ImageSelector id={field.id} required={field.required} accept={field.accept || "image/*"} maxSize={5} />
             )}
 
             {field.type === "signature" && (
@@ -391,7 +382,12 @@ export default function FormPreview({ schema }: FormPreviewProps) {
 
             {field.type === "location" && (
               <div className="space-y-2">
-                <MapLocationSelector height={250} />
+                <MapLocationSelector
+                  height={250}
+                  defaultLatitude={field.latitude}
+                  defaultLongitude={field.longitude}
+                  defaultZoom={field.zoom || 13}
+                />
               </div>
             )}
 
