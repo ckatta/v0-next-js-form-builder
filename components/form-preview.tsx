@@ -18,6 +18,7 @@ import MapLocationSelector from "./map-location-selector"
 import MetricsGenerator from "./metrics-generator"
 import DateTimeRangePicker from "./datetime-range-picker"
 import ImageSelector from "./image-selector"
+import AddressAutocomplete from "./address-autocomplete"
 
 interface FormPreviewProps {
   schema?: FormSchema
@@ -344,40 +345,7 @@ export default function FormPreview({ schema }: FormPreviewProps) {
 
               {field.type === "address" && (
                 <div className="space-y-3">
-                  <div>
-                    <Label htmlFor={`${field.id}-street`}>Street Address</Label>
-                    <Input id={`${field.id}-street`} placeholder="123 Main St" required={field.required} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor={`${field.id}-city`}>City</Label>
-                      <Input id={`${field.id}-city`} placeholder="City" />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${field.id}-state`}>State/Province</Label>
-                      <Input id={`${field.id}-state`} placeholder="State" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor={`${field.id}-zip`}>ZIP/Postal Code</Label>
-                      <Input id={`${field.id}-zip`} placeholder="ZIP Code" />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${field.id}-country`}>Country</Label>
-                      <Select>
-                        <SelectTrigger id={`${field.id}-country`}>
-                          <SelectValue placeholder="Select Country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="us">United States</SelectItem>
-                          <SelectItem value="ca">Canada</SelectItem>
-                          <SelectItem value="uk">United Kingdom</SelectItem>
-                          <SelectItem value="au">Australia</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  <AddressAutocomplete id={field.id} required={field.required} />
                 </div>
               )}
 

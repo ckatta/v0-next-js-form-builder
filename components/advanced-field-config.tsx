@@ -396,6 +396,27 @@ export default function AdvancedFieldConfig({ field, updateField }: AdvancedFiel
               </div>
             </div>
           )}
+
+          {field.type === "address" && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id={`${field.id}-autocomplete`}
+                  checked={field.autocomplete !== false}
+                  onCheckedChange={(checked) => updateField(field.id, { autocomplete: checked })}
+                />
+                <Label htmlFor={`${field.id}-autocomplete`}>Enable address autocomplete</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id={`${field.id}-map`}
+                  checked={field.showMap || false}
+                  onCheckedChange={(checked) => updateField(field.id, { showMap: checked })}
+                />
+                <Label htmlFor={`${field.id}-map`}>Show map with selected location</Label>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="validation" className="space-y-4">
